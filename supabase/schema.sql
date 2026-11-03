@@ -26,6 +26,8 @@ create table if not exists public.karaoke_requests (
     check (status in ('pending', 'queued', 'now_singing')),
   queue_position integer,
   created_at timestamptz not null default now(),
+  submission_key uuid unique,
+  sms_notified_at timestamptz,
   constraint karaoke_queue_position_valid
     check ((status = 'queued' and queue_position is not null and queue_position > 0)
         or (status <> 'queued' and queue_position is null))
@@ -99,7 +101,7 @@ grant usage on schema public to anon, authenticated;
 grant select on public.karaoke_events to anon, authenticated;
 grant select on public.karaoke_requests to anon, authenticated;
 revoke insert, update, delete on public.karaoke_requests from anon;
-grant insert (event_id, singer_name, song_title, artist) on public.karaoke_requests to anon, authenticated;
+revoke insert on public.karaoke_requests from anon, authenticated;
 grant update (status, queue_position) on public.karaoke_requests to authenticated;
 grant delete on public.karaoke_requests to authenticated;
 
@@ -214,5 +216,17 @@ begin
     '0 * * * *',
     $job$delete from public.karaoke_requests where created_at < now() - interval '48 hours';$job$
   );
+end;
+$$;
+
+-- Enable realtime broadcasts for the public queue and DJ inbox.
+do $$
+begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+    begin
+      alter publication supabase_realtime add table public.karaoke_requests;
+    exception when duplicate_object then null;
+    end;
+  end if;
 end;
 $$;
