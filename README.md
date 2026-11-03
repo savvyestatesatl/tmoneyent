@@ -10,14 +10,13 @@ Production branch: `main` (do not modify during development)
 - YouTube search links are convenience links only and do not indicate karaoke-library availability.
 - Listed-song requests prefill the request form.
 - Unlisted-song requests are accepted.
-- The request form opens the guest's SMS app with a prepared message to the existing DJ number. The guest must review and send it.
+- The request form requires a confirmation step, then saves the request through the Supabase Edge Function. SMS is sent automatically only when Twilio is configured.
 
 ## Catalog migration
 Extracted 2005 song rows from the legacy HTML on `modernized`. Artist, title, and year are retained as supplied. This is the legacy published list, not yet verified against the DJ's current hard-drive library.
 
 ## Not implemented yet
-- No Supabase database, admin login, or live queue.
-- No automated SMS delivery or SMS provider.
+- Supabase and Twilio still require account setup and deployment before live requests can be accepted.
 - No AI discovery.
 - No song availability verification.
 
@@ -34,9 +33,9 @@ GitHub Pages production publishing and the `main` branch remain unchanged until 
 ### Setup before live use
 1. Create a Supabase project and run `supabase/schema.sql` in its SQL Editor.
 2. Enable Realtime for `karaoke_requests` if the publication setup did not enable it automatically.
-3. Copy `config.js.example` to `config.js` and enter the Supabase project URL and anon key. Do not commit real private credentials.
+3. Replace the placeholders in `config.js` with the Supabase project URL and anon key. The anon key is designed for browser use; never add a service-role key or Twilio credentials.
 4. Create the DJ Auth user. Set its `app_metadata.role` to `dj` using a trusted admin process; never put the service-role key in browser code.
 5. Deploy the `submit-request` Edge Function. Set its Supabase environment variables and, when ready, Twilio secrets: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`, and `TMONEY_DJ_PHONE`.
 6. Test public request submission, duplicate prevention, DJ approval, live queue visibility, and the 48-hour deletion before using it at an event.
 
-Guests do not provide phone numbers. Pending requests are DJ-only. Public visitors see only accepted singers. Requests are deleted after 48 hours; no played-history list is kept. SMS is optional and a saved request remains visible to the DJ if SMS delivery fails.
+Guests do not provide phone numbers. Pending requests are DJ-only. Public visitors see only accepted singers. Requests are deleted after 48 hours; no played-history list is kept. SMS is optional; a saved request remains visible to the DJ if SMS delivery fails.
